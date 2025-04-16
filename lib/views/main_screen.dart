@@ -5,6 +5,7 @@ import 'package:store_app_web/views/side_bar_screen.dart/buyers_screen.dart';
 import 'package:store_app_web/views/side_bar_screen.dart/categories_screen.dart';
 import 'package:store_app_web/views/side_bar_screen.dart/orders_screen.dart';
 import 'package:store_app_web/views/side_bar_screen.dart/products_screen.dart';
+import 'package:store_app_web/views/side_bar_screen.dart/subcategory_screen.dart';
 import 'package:store_app_web/views/side_bar_screen.dart/upbanner_screen.dart';
 import 'package:store_app_web/views/side_bar_screen.dart/vendors_screen.dart';
 
@@ -40,7 +41,11 @@ class _MainScreenState extends State<MainScreen> {
           _selectedScreen = CategoriesScreen();
         });
         break;
-
+      case SubcategoryScreen.routeName:
+        setState(() {
+          _selectedScreen = SubcategoryScreen();
+        });
+        break;
       case UpbannerScreen.routeName:
         setState(() {
           _selectedScreen = UpbannerScreen();
@@ -83,6 +88,11 @@ class _MainScreenState extends State<MainScreen> {
             title: 'Categories',
             route: CategoriesScreen.routeName,
             icon: Icons.category,
+          ),
+          AdminMenuItem(
+            title: 'Subcategory',
+            route: SubcategoryScreen.routeName,
+            icon: Icons.category_outlined,
           ),
           AdminMenuItem(
             title: 'Upload Banner',

@@ -1,24 +1,32 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:store_app_web/controller/category_controller.dart';
-import 'package:store_app_web/views/widget/category_widget.dart';
+import 'package:store_app_web/controller/subcategory_controller.dart';
+import 'package:store_app_web/models/category.dart';
+import 'package:store_app_web/views/widget/subcategory_widget.dart';
 
-class CategoriesScreen extends StatefulWidget {
-  static const String routeName = '\categoryscreen';
+class SubcategoryScreen extends StatefulWidget {
+  static const String routeName = '\subcategoryscreen';
 
-  const CategoriesScreen({super.key});
+  const SubcategoryScreen({super.key});
 
   @override
-  State<CategoriesScreen> createState() => _CategoriesScreenState();
+  State<SubcategoryScreen> createState() => _SubcategoryScreenState();
 }
 
-class _CategoriesScreenState extends State<CategoriesScreen> {
-  final CategoryController _categoryController = CategoryController();
+class _SubcategoryScreenState extends State<SubcategoryScreen> {
   final GlobalKey<FormState> _globalKey = GlobalKey<FormState>();
+  final SubcategoryController _subcategoryController = SubcategoryController();
+  Future<List<Category>>? futureCategories;
+  Category? _selectedCategory;
+  @override
+  void initState() {
+    super.initState();
+    futureCategories = CategoryController().fetchCategory();
+  }
+
   late String nameData;
   dynamic _imageData;
-  dynamic _bannerData;
-
   Future<void> pickImage() async {
     try {
       final resultImage = await FilePicker.platform.pickFiles(
@@ -39,30 +47,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
-  Future<void> pickBanner() async {
-    try {
-      final resultBanner = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-      );
-
-      if (resultBanner != null) {
-        setState(() {
-          _bannerData = resultBanner.files.first.bytes;
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
-      print('Error picking image: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(20),
       child: Form(
         key: _globalKey,
         child: SingleChildScrollView(
@@ -70,59 +58,46 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Categories',
+                'Subcategories',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 36),
               ),
               Divider(color: Colors.grey),
+              FutureBuilder(
+                future: futureCategories,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Text(snapshot.error.toString());
+                  } else if (snapshot.data!.isEmpty) {
+                    return Center(child: Text('No Data'));
+                  } else {
+                    return DropdownButton<Category>(
+                      value: _selectedCategory,
+                      hint: Text('Select Category'),
+                      items:
+                          snapshot.data!.map((category) {
+                            return DropdownMenuItem(
+                              value: category,
+                              child: Text(category.name),
+                            );
+                          }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value;
+                        });
+                      },
+                    );
+                  }
+                },
+              ),
               Row(
                 children: [
-                  //banner
+                  //
                   Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        child: Container(
-                          height: 150,
-                          width: 150,
-                          decoration: BoxDecoration(
-                            color: Colors.grey,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Center(
-                            child:
-                                _bannerData != null
-                                    ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Image.memory(_bannerData),
-                                    )
-                                    : Text('Category Banner'),
-                          ),
-                        ),
-                      ),
-                      //button
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                        ),
-                        onPressed: () => pickBanner(),
-                        child: Text(
-                          'Upload Banner',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                  // image
-                  Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Container(
                           height: 150,
                           width: 150,
@@ -137,22 +112,24 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                       borderRadius: BorderRadius.circular(20),
                                       child: Image.memory(_imageData),
                                     )
-                                    : Text('Category Image'),
+                                    : Text('Subcategory'),
                           ),
                         ),
                       ),
+                      //button
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                         ),
                         onPressed: () => pickImage(),
                         child: Text(
-                          'Upload Image',
+                          'Upload Subcategory',
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ],
                   ),
+                  // image
                   SizedBox(width: 20),
                   // form field
                   SizedBox(
@@ -186,10 +163,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     onPressed: () async {
                       try {
                         if (_globalKey.currentState!.validate()) {
-                          await _categoryController.uploadCategory(
-                            name: nameData,
+                          _subcategoryController.uploadSubcategory(
+                            categoryId: _selectedCategory!.id,
+                            categoryName: _selectedCategory!.name,
                             pickedImage: _imageData,
-                            pickedBanner: _bannerData,
+                            subCategoryName: nameData,
                             context: context,
                           );
                         }
@@ -204,14 +182,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   ),
                 ],
               ),
-              // pick button
-              SizedBox(height: 10),
               Divider(color: Colors.grey),
-              Text(
-                'Category',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 36),
-              ),
-              CategoryWidget(),
+              SubcategoryWidget(),
             ],
           ),
         ),
